@@ -35,7 +35,7 @@ export default function SupportPortal() {
       setTickets(data);
     } catch (err) {
       console.error('Failed to fetch tickets:', err);
-    } flex {
+    } finally {
       setLoading(false);
     }
   };
