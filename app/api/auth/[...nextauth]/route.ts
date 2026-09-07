@@ -1,7 +1,7 @@
-import NextAuth from "next-auth";
+import NextAuth, { AuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
-const handler = NextAuth({
+export const authOptions: AuthOptions = {
   providers: [
     CredentialsProvider({
       name: "DevRev Support Login",
@@ -20,7 +20,9 @@ const handler = NextAuth({
   pages: {
     signIn: '/api/auth/signin',
   },
-  secret: process.env.NEXTAUTH_SECRET || "devrev-secret-key-2026",
-});
+  secret: process.env.NEXTAUTH_SECRET || "devrev-secret-key-2026-super-secret",
+};
+
+const handler = NextAuth(authOptions);
 
 export { handler as GET, handler as POST };
