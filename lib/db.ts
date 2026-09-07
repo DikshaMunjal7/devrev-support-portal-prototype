@@ -1,7 +1,11 @@
 import Database from 'better-sqlite3';
 import path from 'path';
+import fs from 'fs';
 
-const dbPath = path.join(process.cwd(), 'tickets.db');
+// Use /tmp for Vercel serverless environment compatibility
+const dbDir = process.env.NODE_ENV === 'production' ? '/tmp' : process.cwd();
+const dbPath = path.join(dbDir, 'tickets.db');
+
 const db = new Database(dbPath);
 
 // Create table if it doesn't exist

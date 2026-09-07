@@ -6,7 +6,8 @@ export async function GET() {
     const tickets = db.prepare('SELECT * FROM tickets ORDER BY createdAt DESC').all();
     return NextResponse.json(tickets);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch tickets' }, { status: 500 });
+    console.error('GET Error:', error);
+    return NextResponse.json([], { status: 200 });
   }
 }
 
@@ -29,7 +30,7 @@ export async function POST(request: Request) {
       priority: body.priority || 'MEDIUM',
       status: 'UNTRIAGED',
       category: category,
-      aiSummary: `Auto-triaged as ${category} based on payload description.`,
+      aiSummary: `Auto-triaged as ${category} based on description.`,
       createdAt: new Date().toISOString(),
     };
 
@@ -42,6 +43,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(newTicket, { status: 201 });
   } catch (error) {
+    console.error('POST Error:', error);
     return NextResponse.json({ error: 'Failed to create ticket' }, { status: 500 });
   }
 }
