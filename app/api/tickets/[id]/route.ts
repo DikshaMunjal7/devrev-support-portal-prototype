@@ -17,6 +17,7 @@ export async function PATCH(
     const updatedTicket = db.prepare('SELECT * FROM tickets WHERE id = ?').get(id);
     return NextResponse.json(updatedTicket);
   } catch (error) {
+    console.error('PATCH Error:', error);
     return NextResponse.json({ error: 'Failed to update ticket' }, { status: 500 });
   }
 }
