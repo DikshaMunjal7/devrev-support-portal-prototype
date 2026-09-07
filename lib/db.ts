@@ -1,8 +1,6 @@
 import Database from 'better-sqlite3';
 import path from 'path';
-import fs from 'fs';
 
-// Use /tmp for Vercel serverless environment compatibility
 const dbDir = process.env.NODE_ENV === 'production' ? '/tmp' : process.cwd();
 const dbPath = path.join(dbDir, 'tickets.db');
 
@@ -22,5 +20,39 @@ db.exec(`
     createdAt TEXT NOT NULL
   )
 `);
+
+// Auto-seed default records if empty
+const count = (db.prepare('SELECT COUNT(*) as count FROM tickets').get() as { count: number }).count;
+
+if (count === 0) {
+  const seed = db.prepare(`
+    INSERT INTO tickets (id, title, description, customerEmail, priority, status, category, aiSummary, createdAt)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  seed.run(
+    'ticket_1',
+    'Cannot process credit card payment',
+    'Customer receives 500 error when submitting credit card checkout on payment page.',
+    'alex@acme.com',
+    'HIGH',
+    'UNTRIAGED',
+    'BUG',
+    'High-severity payment gateway error on checkout page.',
+    new Date().toISOString()
+  );
+
+  seed.run(
+    'ticket_2',
+    'Annual subscription discount inquiry',
+    'User asking if there is a 20% discount for enterprise annual billing.',
+    'finance@corp.com',
+    'LOW',
+    'IN_PROGRESS',
+    'BILLING',
+    'Sales inquiry regarding enterprise tier pricing.',
+    new Date().toISOString()
+  );
+}
 
 export default db;
