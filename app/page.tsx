@@ -1,5 +1,3 @@
-# 1. Write the full dashboard code into app/page.tsx
-cat << 'EOF' > app/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
