@@ -20,7 +20,7 @@ const handler = NextAuth({
   pages: {
     signIn: '/api/auth/signin',
   },
-  secret: "devrev-secret-key-2026",
+  secret: process.env.NEXTAUTH_SECRET || "devrev-secret-key-2026",
 });
 
 export { handler as GET, handler as POST };
