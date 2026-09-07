@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import db from '@/lib/db';
 
 export async function PATCH(
   request: Request,
@@ -7,9 +8,15 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    return NextResponse.json({ success: true, id, updated: body });
+
+    if (body.status) {
+      const stmt = db.prepare('UPDATE tickets SET status = ? WHERE id = ?');
+      stmt.run(body.status, id);
+    }
+
+    const updatedTicket = db.prepare('SELECT * FROM tickets WHERE id = ?').get(id);
+    return NextResponse.json(updatedTicket);
   } catch (error) {
     return NextResponse.json({ error: 'Failed to update ticket' }, { status: 500 });
   }
 }
-

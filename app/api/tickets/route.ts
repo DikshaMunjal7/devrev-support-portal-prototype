@@ -1,48 +1,45 @@
 import { NextResponse } from 'next/server';
-
-// Temporary in-memory store for rapid prototype demo
-let tickets: any[] = [
-  {
-    id: '1',
-    title: 'Payment Gateway Error on Checkout',
-    description: 'Customers are getting 500 error when clicking pay now.',
-    priority: 'HIGH',
-    status: 'UNTRIAGED',
-    category: 'BUG',
-    customerEmail: 'alex@acme.com',
-    aiSummary: 'Summary: Payment Gateway Error. Automated AI Triage flagged as BUG.',
-    createdAt: new Date().toISOString(),
-  }
-];
+import db from '@/lib/db';
 
 export async function GET() {
-  return NextResponse.json(tickets);
+  try {
+    const tickets = db.prepare('SELECT * FROM tickets ORDER BY createdAt DESC').all();
+    return NextResponse.json(tickets);
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to fetch tickets' }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { title, description, priority, customerEmail } = body;
 
-    const category = description.toLowerCase().includes('bug') || description.toLowerCase().includes('error') 
-      ? 'BUG' 
-      : description.toLowerCase().includes('invoice') || description.toLowerCase().includes('charge')
-      ? 'BILLING'
-      : 'FEATURE_REQUEST';
+    let category = 'BUG';
+    if (body.description?.toLowerCase().includes('discount') || body.description?.toLowerCase().includes('invoice')) {
+      category = 'BILLING';
+    } else if (body.description?.toLowerCase().includes('feature') || body.description?.toLowerCase().includes('request')) {
+      category = 'FEATURE_REQUEST';
+    }
 
     const newTicket = {
-      id: Date.now().toString(),
-      title,
-      description,
-      priority: priority || 'MEDIUM',
+      id: `ticket_${Date.now()}`,
+      title: body.title || 'Untitled Ticket',
+      description: body.description || '',
+      customerEmail: body.customerEmail || 'unknown@domain.com',
+      priority: body.priority || 'MEDIUM',
       status: 'UNTRIAGED',
-      category,
-      customerEmail,
-      aiSummary: `Summary: ${title}. Automated AI Triage flagged as ${category}.`,
+      category: category,
+      aiSummary: `Auto-triaged as ${category} based on payload description.`,
       createdAt: new Date().toISOString(),
     };
 
-    tickets.unshift(newTicket);
+    const stmt = db.prepare(`
+      INSERT INTO tickets (id, title, description, customerEmail, priority, status, category, aiSummary, createdAt)
+      VALUES (@id, @title, @description, @customerEmail, @priority, @status, @category, @aiSummary, @createdAt)
+    `);
+    
+    stmt.run(newTicket);
+
     return NextResponse.json(newTicket, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to create ticket' }, { status: 500 });
