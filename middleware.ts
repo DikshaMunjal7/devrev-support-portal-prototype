@@ -1,6 +1,11 @@
-export { default } from "next-auth/middleware";
+import { withAuth } from "next-auth/middleware";
 
-// Protect the home dashboard and API endpoints
+export default withAuth({
+  pages: {
+    signIn: "/api/auth/signin",
+  },
+});
+
 export const config = {
-  matcher: ["/", "/api/tickets/:path*"],
+  matcher: ["/"],
 };
