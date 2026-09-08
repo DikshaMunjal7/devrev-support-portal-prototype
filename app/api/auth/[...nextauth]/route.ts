@@ -7,20 +7,27 @@ export const authOptions: AuthOptions = {
       name: "DevRev Support Login",
       credentials: {
         username: { label: "Username", type: "text" },
-        password: { label: "Password", type: "password" }
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        const u = credentials?.username?.trim();
-        const p = credentials?.password?.trim();
+        const username = credentials?.username?.trim();
+        const password = credentials?.password?.trim();
 
-        if (u === "admin" && p === "devrev2026") {
-          return { id: "1", name: "Support Engineer", email: "admin@devrev.ai" };
+        // Validate hardcoded administrative credentials
+        if (username === "admin" && password === "devrev2026") {
+          return {
+            id: "1",
+            name: "Support Engineer",
+            email: "admin@devrev.ai",
+          };
         }
         return null;
-      }
-    })
+      },
+    }),
   ],
-  session: { strategy: "jwt" },
+  session: {
+    strategy: "jwt",
+  },
   secret: process.env.NEXTAUTH_SECRET || "devrev-secret-key-2026-super-secret",
 };
 
