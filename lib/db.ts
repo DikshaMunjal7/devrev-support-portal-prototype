@@ -1,9 +1,8 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 
-// Change database name to force Vercel to start fresh
 const dbDir = process.env.NODE_ENV === 'production' ? '/tmp' : process.cwd();
-const dbPath = path.join(dbDir, 'tickets_v2.db');
+const dbPath = path.join(dbDir, 'tickets_v3.db');
 
 const db = new Database(dbPath);
 
