@@ -44,6 +44,10 @@ export async function POST(request: Request) {
         contents: `Analyze this support ticket and return STRICT JSON ONLY (no markdown formatting, no code blocks):
 {"category": "BUG" | "BILLING" | "FEATURE", "priority": "LOW" | "MEDIUM" | "HIGH" | "URGENT"}
 
+Rules:
+- Software errors, HTTP 500 status, crashes, or unhandled exceptions are ALWAYS "BUG".
+- Invoices, discount requests, charges, or pricing inquiries are "BILLING".
+
 Title: ${title}
 Description: ${description}`,
       });
@@ -56,7 +60,6 @@ Description: ${description}`,
       const text = response.text();
 
       if (text) {
-        // Extract raw JSON string safely
         const cleanText = text.replace(/```json/g, "").replace(/```/g, "").trim();
         const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
@@ -66,34 +69,33 @@ Description: ${description}`,
         }
       }
     } catch (err) {
-      // Robust Fallback categorization logic
       const lower = `${title} ${description}`.toLowerCase();
 
-      const isBilling =
-        lower.includes("bill") ||
-        lower.includes("charge") ||
-        lower.includes("pay") ||
-        lower.includes("invoice") ||
-        lower.includes("renew") ||
-        lower.includes("discount") ||
-        lower.includes("cost") ||
-        lower.includes("price") ||
-        lower.includes("$");
-
+      // Check for technical error indicators FIRST
       const isBug =
-        lower.includes("bug") ||
+        lower.includes("500") ||
         lower.includes("error") ||
-        lower.includes("fail") ||
+        lower.includes("exception") ||
         lower.includes("crash") ||
+        lower.includes("fail") ||
         lower.includes("glitch") ||
         lower.includes("broken") ||
-        lower.includes("issue");
+        lower.includes("bug");
 
-      if (isBilling) {
-        category = "BILLING";
-        priority = "HIGH";
-      } else if (isBug) {
+      const isBilling =
+        lower.includes("invoice") ||
+        lower.includes("charge") ||
+        lower.includes("bill") ||
+        lower.includes("renew") ||
+        lower.includes("discount") ||
+        lower.includes("pricing") ||
+        lower.includes("cost");
+
+      if (isBug) {
         category = "BUG";
+        priority = "HIGH";
+      } else if (isBilling) {
+        category = "BILLING";
         priority = "HIGH";
       } else {
         category = "FEATURE";
