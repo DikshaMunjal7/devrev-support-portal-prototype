@@ -30,10 +30,13 @@ export async function POST(request: Request) {
 
     const id = `ticket_${Date.now()}`;
     const status = "UNTRIAGED";
-    const customer = customerEmail || "dikshamunjal7@gmail.com";
+    const email = customerEmail || "dikshamunjal7@gmail.com";
+    const customer = email.split("@")[0] || "Customer";
+    const createdAt = new Date().toISOString();
 
     let category = "FEATURE";
     let priority = "MEDIUM";
+    let aiSummary = `${category} ticket submitted regarding ${title}`;
 
     try {
       const aiPromise = ai.models.generateContent({
@@ -81,17 +84,25 @@ Description: ${description}`,
       }
     }
 
-	try {
+    // Dynamic ALTER execution to ensure column exists regardless of cached DB file state
+    try {
       db.exec("ALTER TABLE tickets ADD COLUMN customer TEXT;");
     } catch (e) {
-      // Ignore error if column already exists
+      // Column already exists
     }
+
+    try {
+      db.exec("ALTER TABLE tickets ADD COLUMN aiSummary TEXT;");
+    } catch (e) {
+      // Column already exists
+    }
+
     const stmt = db.prepare(`
-      INSERT INTO tickets (id, title, description, customerEmail, customer, category, priority, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO tickets (id, title, description, customerEmail, customer, category, priority, status, aiSummary, createdAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
-    stmt.run(id, title, description, customer, customer, category, priority, status);
+    stmt.run(id, title, description, email, customer, category, priority, status, aiSummary, createdAt);
 
     const newTicket = db.prepare("SELECT * FROM tickets WHERE id = ?").get(id);
     const safeTicket = JSON.parse(
