@@ -1,13 +1,13 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 
-const DB_NAME = 'tickets_v2.db';
+// Use /tmp for Vercel serverless environment compatibility
 const dbDir = process.env.NODE_ENV === 'production' ? '/tmp' : process.cwd();
-const dbPath = path.join(dbDir, DB_NAME);
+const dbPath = path.join(dbDir, 'tickets.db');
 
 const db = new Database(dbPath);
 
-// 1. Create table with ALL required columns (including customer)
+// 1. Create table with ALL required fields including customer
 db.exec(`
   CREATE TABLE IF NOT EXISTS tickets (
     id TEXT PRIMARY KEY,
@@ -23,22 +23,14 @@ db.exec(`
   )
 `);
 
-// 2. Automated migration: Ensure missing columns are added if an older DB exists on server
-const requiredColumns = [
-  { name: 'customer', type: 'TEXT' },
-  { name: 'customerEmail', type: 'TEXT' },
-  { name: 'aiSummary', type: 'TEXT' }
-];
+// 2. Fallback check: if /tmp/tickets.db already existed without customer, add it now
+try {
+  db.exec("ALTER TABLE tickets ADD COLUMN customer TEXT;");
+} catch (e) {
+  // Column already exists, safe to ignore
+}
 
-requiredColumns.forEach((col) => {
-  try {
-    db.exec(`ALTER TABLE tickets ADD COLUMN ${col.name} ${col.type};`);
-  } catch (e) {
-    // Column already exists, safe to ignore
-  }
-});
-
-// 3. Auto-seed default records if empty
+// 3. Auto-seed default records if table is empty
 const count = (db.prepare('SELECT COUNT(*) as count FROM tickets').get() as { count: number }).count;
 
 if (count === 0) {
