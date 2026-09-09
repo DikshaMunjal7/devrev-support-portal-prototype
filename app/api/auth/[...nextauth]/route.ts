@@ -1,24 +1,22 @@
-import NextAuth, { AuthOptions } from "next-auth";
+import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
-export const authOptions: AuthOptions = {
+const handler = NextAuth({
   providers: [
     CredentialsProvider({
-      name: "DevRev Support Login",
+      name: "Credentials",
       credentials: {
-        username: { label: "Username", type: "text" },
+        username: { label: "Username / Email", type: "text", placeholder: "admin" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        const username = credentials?.username?.trim();
-        const password = credentials?.password?.trim();
-
-        // Validate hardcoded administrative credentials
-        if (username === "admin" && password === "devrev2026") {
+        if (credentials?.username) {
           return {
             id: "1",
-            name: "Support Engineer",
-            email: "admin@devrev.ai",
+            name: credentials.username,
+            email: credentials.username.includes("@") 
+              ? credentials.username 
+              : `${credentials.username}@devrev.ai`,
           };
         }
         return null;
@@ -28,9 +26,7 @@ export const authOptions: AuthOptions = {
   session: {
     strategy: "jwt",
   },
-  secret: process.env.NEXTAUTH_SECRET || "devrev-secret-key-2026-super-secret",
-};
-
-const handler = NextAuth(authOptions);
+  secret: process.env.NEXTAUTH_SECRET || "devrev-super-secret-key-123456",
+});
 
 export { handler as GET, handler as POST };

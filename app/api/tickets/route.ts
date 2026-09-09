@@ -1,50 +1,103 @@
-import { NextResponse } from 'next/server';
-import db from '@/lib/db';
-import { triageTicket } from '@/lib/ai-service';
+import { NextResponse } from "next/server";
+import db from "@/lib/db";
+import { GoogleGenAI } from "@google/genai";
+
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 export async function GET() {
   try {
-    const tickets = db.prepare('SELECT * FROM tickets ORDER BY createdAt DESC').all();
-    return NextResponse.json(tickets);
+    const tickets = db.prepare("SELECT * FROM tickets ORDER BY id DESC").all();
+    const safeTickets = JSON.parse(
+      JSON.stringify(tickets, (_, value) =>
+        typeof value === "bigint" ? value.toString() : value
+      )
+    );
+    return NextResponse.json(safeTickets);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch tickets' }, { status: 500 });
+    console.error("GET Error:", error);
+    return NextResponse.json({ error: "Failed to fetch tickets" }, { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const title = body.title || 'Untitled Ticket';
-    const description = body.description || '';
-    const customerEmail = body.customerEmail || 'unknown@domain.com';
+    const { title, description, customerEmail } = body;
 
-    // 1. CALL GEMINI AI
-    const aiResult = await triageTicket(title, description);
+    if (!title || !description) {
+      return NextResponse.json({ error: "Title and description are required" }, { status: 400 });
+    }
 
-    // 2. BUILD TICKET WITH GEMINI RESPONSE
-    const newTicket = {
-      id: `ticket_${Date.now()}`,
-      title,
-      description,
-      customerEmail,
-      priority: aiResult.priority || body.priority || 'MEDIUM',
-      status: 'UNTRIAGED',
-      category: aiResult.category || 'GENERAL',
-      aiSummary: aiResult.summary, // Live Gemini summary stored in DB
-      createdAt: new Date().toISOString(),
-    };
+    const id = `ticket_${Date.now()}`;
+    const status = "UNTRIAGED";
+    const customer = customerEmail || "dikshamunjal7@gmail.com";
 
-    // 3. INSERT INTO SQLITE
+    let category = "FEATURE";
+    let priority = "MEDIUM";
+
+    try {
+      const aiPromise = ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: `Analyze this support ticket and return strict JSON with keys "category" (must be one of: BUG, BILLING, FEATURE) and "priority" (must be one of: LOW, MEDIUM, HIGH, URGENT).
+Title: ${title}
+Description: ${description}`,
+      });
+
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("AI Timeout")), 2500)
+      );
+
+      const response: any = await Promise.race([aiPromise, timeoutPromise]);
+      const text = response.text();
+      
+      if (text) {
+        const parsed = JSON.parse(text.replace(/```json/g, "").replace(/```/g, "").trim());
+        if (parsed.category) category = parsed.category;
+        if (parsed.priority) priority = parsed.priority;
+      }
+    } catch (err) {
+      const lower = `${title} ${description}`.toLowerCase();
+      if (
+        lower.includes("bug") || 
+        lower.includes("error") || 
+        lower.includes("fail") || 
+        lower.includes("crash") || 
+        lower.includes("glitch") || 
+        lower.includes("script") || 
+        lower.includes("issue") ||
+        lower.includes("password") ||
+        lower.includes("reset") ||
+        lower.includes("expire") ||
+        lower.includes("login")
+      ) {
+        category = "BUG";
+        priority = "HIGH";
+      } else if (lower.includes("bill") || lower.includes("pay") || lower.includes("invoice") || lower.includes("charge")) {
+        category = "BILLING";
+        priority = "HIGH";
+      } else {
+        category = "FEATURE";
+        priority = "LOW";
+      }
+    }
+
     const stmt = db.prepare(`
-      INSERT INTO tickets (id, title, description, customerEmail, priority, status, category, aiSummary, createdAt)
-      VALUES (@id, @title, @description, @customerEmail, @priority, @status, @category, @aiSummary, @createdAt)
+      INSERT INTO tickets (id, title, description, customerEmail, customer, category, priority, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
-    stmt.run(newTicket);
+    stmt.run(id, title, description, customer, customer, category, priority, status);
 
-    return NextResponse.json(newTicket, { status: 201 });
+    const newTicket = db.prepare("SELECT * FROM tickets WHERE id = ?").get(id);
+    const safeTicket = JSON.parse(
+      JSON.stringify(newTicket, (_, value) =>
+        typeof value === "bigint" ? value.toString() : value
+      )
+    );
+
+    return NextResponse.json(safeTicket, { status: 201 });
   } catch (error) {
-    console.error('POST Error:', error);
-    return NextResponse.json({ error: 'Failed to create ticket' }, { status: 500 });
+    console.error("POST Error:", error);
+    return NextResponse.json({ error: "Failed to create ticket" }, { status: 500 });
   }
 }
