@@ -25,7 +25,6 @@ This system bridges frontline customer operations with engineering backlogs by a
 3. **Automated AI Triage:** Next.js API routes call Gemini 2.5 Flash to automatically extract:
   * **Category:** Enforced enums (`BUG`, `BILLING`, `FEATURE_REQUEST`).
   * **Priority:** Enforced enums (`HIGH`, `MEDIUM`, `LOW`).
-  * **AI Summary:** Single-sentence executive summary.
 4. **CRUD Ticket Workflow:**
    - **Create:** Modal overlay (`+ New Ticket`) triggering server-side triage and SQLite insertion.
    - **Read:** Active escalation table display with live status badges.
