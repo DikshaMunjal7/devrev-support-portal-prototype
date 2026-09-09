@@ -1,3 +1,4 @@
+cat << 'EOF' > README.md
 # DevRev Support & Escalation Engine 🚀
 
 A real-time, light-themed, AI-triaged customer support and escalation portal built with **Next.js 15**, **NextAuth.js**, **SQLite**, and **Tailwind CSS**. 
@@ -8,23 +9,23 @@ This system bridges frontline customer operations with engineering backlogs by a
 
 ## 🛠️ Tech Stack & Architecture
 
-- **Framework:** [Next.js 15 (App Router)](https://nextjs.org/)
-- **Authentication:** [NextAuth.js](https://next-auth.js.org/) (Credentials Provider)
-- **Database:** SQLite (via local file storage)
-- **Styling:** [Tailwind CSS](https://tailwindcss.com/)
-- **Language:** TypeScript
-- **Deployment:** [Vercel](https://vercel.com/)
+* **Framework:** Next.js 15 (App Router)
+* **AI Engine:** Google Gemini 2.5 Flash (`@google/genai`)
+* **Database:** SQLite (`better-sqlite3` with Vercel `/tmp` execution context)
+* **Authentication:** NextAuth.js
+* **Styling:** Tailwind CSS
+* **Language:** TypeScript
+* **Deployment:** Vercel
 
 ---
-
-## ✨ Features
+## ✨ Features & AI 
 
 1. **Secure Admin Authentication:** Protected dashboard access guarded by root-level NextAuth session checks.
 2. **Real-Time Dashboard Metrics:** Live aggregation cards tracking **Total Volume**, **Untriaged Issues**, and **High Priority** tickets.
-3. **Server-Side AI Triage Engine:** Automatically parses plain text issue descriptions to extract:
-   - **Category:** `BUG`, `BILLING`, `FEATURE_REQUEST`
-   - **Priority:** `HIGH`, `MEDIUM`, `LOW`
-   - **AI Summary:** Concise technical briefing generated for developers.
+3. **Automated AI Triage:** Next.js API routes call Gemini 2.5 Flash to automatically extract:
+  * **Category:** Enforced enums (`BUG`, `BILLING`, `FEATURE_REQUEST`).
+  * **Priority:** Enforced enums (`HIGH`, `MEDIUM`, `LOW`).
+  * **AI Summary:** Single-sentence executive summary.
 4. **CRUD Ticket Workflow:**
    - **Create:** Modal overlay (`+ New Ticket`) triggering server-side triage and SQLite insertion.
    - **Read:** Active escalation table display with live status badges.
@@ -81,12 +82,11 @@ touch .env.local
 
 Add the following environment variables to .env.local:
 
-# NextAuth Configuration
 NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=your_nextauth_secret_key_here
 
-# Optional: AI API Key (if connecting external OpenAI / Claude API)
-OPENAI_API_KEY=your_openai_api_key_here
+# Google Gemini API Key
+GEMINI_API_KEY=AIzaSy...
 
 💡 Note: You can generate a random secret for NEXTAUTH_SECRET by running openssl rand -base64 32 in your terminal.
 
@@ -150,5 +150,6 @@ This repository is optimized for deployment on Vercel:
 
 1.Push your latest code to GitHub (git push origin main)
 2. Import your GitHub repository into the Vercel Dashboard
-3.In Project Settings -> Environment Variables, add NEXTAUTH_SECRET and NEXTAUTH_URL.
+3.In Project Settings -> Environment Variables, add NEXTAUTH_SECRET , GEMINI_API_KEY and NEXTAUTH_URL
 4. Click Deploy. Vercel will automatically compile the Next.js App Router endpoints as serverless functions.
+
