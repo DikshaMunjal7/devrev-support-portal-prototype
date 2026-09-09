@@ -6,13 +6,14 @@ const dbPath = path.join(dbDir, 'tickets.db');
 
 const db = new Database(dbPath);
 
-// Create table if it doesn't exist
+// 1. Create table with ALL required columns (including customer)
 db.exec(`
   CREATE TABLE IF NOT EXISTS tickets (
     id TEXT PRIMARY KEY,
     title TEXT NOT NULL,
     description TEXT NOT NULL,
     customerEmail TEXT NOT NULL,
+    customer TEXT,
     priority TEXT NOT NULL,
     status TEXT NOT NULL,
     category TEXT NOT NULL,
@@ -21,13 +22,28 @@ db.exec(`
   )
 `);
 
-// Auto-seed default records if empty
+// 2. Automated migration: Ensure missing columns are added if an older DB exists on server
+const requiredColumns = [
+  { name: 'customer', type: 'TEXT' },
+  { name: 'customerEmail', type: 'TEXT' },
+  { name: 'aiSummary', type: 'TEXT' }
+];
+
+requiredColumns.forEach((col) => {
+  try {
+    db.exec(`ALTER TABLE tickets ADD COLUMN ${col.name} ${col.type};`);
+  } catch (e) {
+    // Column already exists, safe to ignore
+  }
+});
+
+// 3. Auto-seed default records if empty
 const count = (db.prepare('SELECT COUNT(*) as count FROM tickets').get() as { count: number }).count;
 
 if (count === 0) {
   const seed = db.prepare(`
-    INSERT INTO tickets (id, title, description, customerEmail, priority, status, category, aiSummary, createdAt)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO tickets (id, title, description, customerEmail, customer, priority, status, category, aiSummary, createdAt)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   seed.run(
@@ -35,6 +51,7 @@ if (count === 0) {
     'Cannot process credit card payment',
     'Customer receives 500 error when submitting credit card checkout on payment page.',
     'alex@acme.com',
+    'Acme Corp',
     'HIGH',
     'UNTRIAGED',
     'BUG',
@@ -47,6 +64,7 @@ if (count === 0) {
     'Annual subscription discount inquiry',
     'User asking if there is a 20% discount for enterprise annual billing.',
     'finance@corp.com',
+    'Corp Inc',
     'LOW',
     'IN_PROGRESS',
     'BILLING',
