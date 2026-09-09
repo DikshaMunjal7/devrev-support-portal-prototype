@@ -121,7 +121,7 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto flex justify-between items-center mb-8">
         <div>
           <h1 className="text-2xl font-bold text-white">DevRev Support & Escalation Portal</h1>
-          <p className="text-sm text-gray-400 mt-1">Automated Triage & Shared Memory Issue Sync</p>
+          <p className="text-sm text-gray-400 mt-1">Automated Triage & Shared Memory Sync</p>
         </div>
         <div className="flex items-center space-x-4">
           <span className="text-xs text-gray-400">
