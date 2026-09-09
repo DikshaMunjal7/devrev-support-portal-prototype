@@ -41,7 +41,9 @@ export async function POST(request: Request) {
     try {
       const aiPromise = ai.models.generateContent({
         model: "gemini-2.5-flash",
-        contents: `Analyze this support ticket and return strict JSON with keys "category" (must be one of: BUG, BILLING, FEATURE) and "priority" (must be one of: LOW, MEDIUM, HIGH, URGENT).
+        contents: `Analyze this support ticket and return STRICT JSON ONLY (no markdown formatting, no code blocks):
+{"category": "BUG" | "BILLING" | "FEATURE", "priority": "LOW" | "MEDIUM" | "HIGH" | "URGENT"}
+
 Title: ${title}
 Description: ${description}`,
       });
@@ -52,31 +54,46 @@ Description: ${description}`,
 
       const response: any = await Promise.race([aiPromise, timeoutPromise]);
       const text = response.text();
-      
+
       if (text) {
-        const parsed = JSON.parse(text.replace(/```json/g, "").replace(/```/g, "").trim());
-        if (parsed.category) category = parsed.category;
-        if (parsed.priority) priority = parsed.priority;
+        // Extract raw JSON string safely
+        const cleanText = text.replace(/```json/g, "").replace(/```/g, "").trim();
+        const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (parsed.category) category = parsed.category.toUpperCase();
+          if (parsed.priority) priority = parsed.priority.toUpperCase();
+        }
       }
     } catch (err) {
+      // Robust Fallback categorization logic
       const lower = `${title} ${description}`.toLowerCase();
-      if (
-        lower.includes("bug") || 
-        lower.includes("error") || 
-        lower.includes("fail") || 
-        lower.includes("crash") || 
-        lower.includes("glitch") || 
-        lower.includes("script") || 
-        lower.includes("issue") ||
-        lower.includes("password") ||
-        lower.includes("reset") ||
-        lower.includes("expire") ||
-        lower.includes("login")
-      ) {
-        category = "BUG";
-        priority = "HIGH";
-      } else if (lower.includes("bill") || lower.includes("pay") || lower.includes("invoice") || lower.includes("charge")) {
+
+      const isBilling =
+        lower.includes("bill") ||
+        lower.includes("charge") ||
+        lower.includes("pay") ||
+        lower.includes("invoice") ||
+        lower.includes("renew") ||
+        lower.includes("discount") ||
+        lower.includes("cost") ||
+        lower.includes("price") ||
+        lower.includes("$");
+
+      const isBug =
+        lower.includes("bug") ||
+        lower.includes("error") ||
+        lower.includes("fail") ||
+        lower.includes("crash") ||
+        lower.includes("glitch") ||
+        lower.includes("broken") ||
+        lower.includes("issue");
+
+      if (isBilling) {
         category = "BILLING";
+        priority = "HIGH";
+      } else if (isBug) {
+        category = "BUG";
         priority = "HIGH";
       } else {
         category = "FEATURE";
@@ -84,18 +101,13 @@ Description: ${description}`,
       }
     }
 
-    // Dynamic ALTER execution to ensure column exists regardless of cached DB file state
     try {
       db.exec("ALTER TABLE tickets ADD COLUMN customer TEXT;");
-    } catch (e) {
-      // Column already exists
-    }
+    } catch (e) {}
 
     try {
       db.exec("ALTER TABLE tickets ADD COLUMN aiSummary TEXT;");
-    } catch (e) {
-      // Column already exists
-    }
+    } catch (e) {}
 
     const stmt = db.prepare(`
       INSERT INTO tickets (id, title, description, customerEmail, customer, category, priority, status, aiSummary, createdAt)
