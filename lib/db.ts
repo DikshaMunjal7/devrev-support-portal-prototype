@@ -1,8 +1,9 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 
+const DB_NAME = 'tickets_v2.db';
 const dbDir = process.env.NODE_ENV === 'production' ? '/tmp' : process.cwd();
-const dbPath = path.join(dbDir, 'tickets.db');
+const dbPath = path.join(dbDir, DB_NAME);
 
 const db = new Database(dbPath);
 
