@@ -11,11 +11,12 @@ model Ticket {
   id            String   @id @default(uuid())
   title         String
   description   String
-  priority      String   // LOW, MEDIUM, HIGH, URGENT
-  status        String   // UNTRIAGED, IN_PROGRESS, RESOLVED, CLOSED
-  category      String   // BUG, FEATURE_REQUEST, BILLING
+  priority      String
+  status        String
+  category      String
   customerEmail String
-  aiSummary     String?  // Auto-generated AI summary
+  customer      String?
+  aiSummary     String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
