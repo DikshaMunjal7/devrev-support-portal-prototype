@@ -81,6 +81,11 @@ Description: ${description}`,
       }
     }
 
+	try {
+      db.exec("ALTER TABLE tickets ADD COLUMN customer TEXT;");
+    } catch (e) {
+      // Ignore error if column already exists
+    }
     const stmt = db.prepare(`
       INSERT INTO tickets (id, title, description, customerEmail, customer, category, priority, status)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
